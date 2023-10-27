@@ -1,0 +1,74 @@
+q_offer_assistance_interaction_gold_value = {
+	value = 0
+	if = {
+		limit = { exists = scope:q_contract_assistance_helper }
+		add = scope:q_contract_assistance_helper.max_military_strength
+	}
+	divide = 8
+	multiply = {
+		value = 1
+		if = {
+			limit = { exists = scope:q_contract_assistance_helper }
+			if = {
+				limit = { scope:q_contract_assistance_helper = { has_trait = greedy } }
+				add = 0.5
+			}
+			else_if = {
+				limit = { scope:q_contract_assistance_helper = { has_trait = generous } }
+				subtract = 0.5
+			}
+		}
+	}
+	if = {
+		limit = { always = scope:pt_sum_medium }
+		add = 100
+	}
+	else_if = {
+		limit = { always = scope:pt_sum_large }
+		add = 1000
+	}
+	round = yes
+}
+
+
+q_offer_assistance_interaction_gold_modifier_value = {
+	value = scope:recipient.gold
+	divide = 100
+	floor = yes
+	max = 5
+}
+
+q_offer_assistance_interaction_already_winning_value = 50
+
+q_offer_assistance_interaction_already_losing_value = 25
+
+q_offer_assistance_interaction_war_contribution_value = {
+	value = 0
+	if = {
+		limit = { exists = scope:q_contract_assistance_helper }
+		add = scope:q_contract_assistance_helper.max_military_strength
+	}
+	round = yes
+}
+
+q_saved_contribution_value = {
+	value = 0
+	if = {
+		limit = {
+			exists = scope:q_contract_assistance_helper
+			exists = scope:q_contract_assistance_helper.var:q_owed_contract_assistance_contribution
+		}
+		add = scope:q_contract_assistance_helper.var:q_owed_contract_assistance_contribution
+	}
+	else = {
+		add = q_offer_assistance_interaction_war_contribution_value
+	}
+}
+
+
+
+q_interaction_small_sum = { value = medium_gold_value }
+
+q_interaction_medium_sum = { value = major_gold_value }
+
+q_interaction_major_sum = { value = massive_gold_value }
