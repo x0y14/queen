@@ -1,0 +1,501 @@
+﻿qe_request_contract_assistance_interaction = {
+	category = interaction_category_diplomacy
+	interface_priority = 15
+	common_interaction = yes
+	interface = call_ally
+	special_interaction = call_ally_interaction
+	popup_on_receive = yes
+	pause_on_receive = yes
+
+	ai_maybe = yes
+	desc = request_contract_assistance_interaction_desc
+	icon = icon_gold
+
+	greeting = positive
+	notification_text = request_contract_assistance_interaction_notification
+
+	cooldown_against_recipient = { years = 0 }
+
+	is_shown = {
+		scope:actor = {
+			is_at_war = yes
+			NOR = {
+				this = scope:recipient
+				is_at_war_with = scope:recipient
+			}
+		}
+		# Recipient is Involved in Struggle, at war, and not at war with Actor
+		scope:recipient = {
+			has_title = title:k_croatia
+		}
+	}
+
+	has_valid_target = {
+		exists = scope:target
+	}
+
+	has_valid_target_showing_failures_only = {
+		scope:target = { is_war_leader = scope:actor }
+	}
+
+	is_valid_showing_failures_only = {
+		scope:recipient = {
+			# Cannot demand gold from allies
+			NOT = { is_allied_to = scope:actor }
+		}
+		# scope:target = {
+		# 	# Cannot contract against allies
+		# 	trigger_if = {
+		# 		limit = {
+		# 			any_war_attacker = { this = scope:recipient }
+		# 		}
+		# 		NOT = {
+		# 			any_war_defender = { is_allied_to = scope:actor }
+		# 		}
+		# 	}
+		# 	trigger_else = {
+		# 		NOT = {
+		# 			any_war_attacker = { is_allied_to = scope:actor }
+		# 		}
+		# 	}
+		# }
+		# Actor is not in (any) war against Recipient's liege(s)
+		trigger_if = {
+			limit = { exists = scope:recipient.liege }
+			custom_description = {
+				text = join_war_interaction_recipient_warring_with_my_liege
+				subject = scope:actor
+				scope:recipient = {
+					NOT = {
+						any_liege_or_above = { is_at_war_with = scope:actor }
+					}
+				}
+			}
+		}
+
+		# Cannot join wars with raised armies
+		scope:recipient = { has_raised_armies = no }
+
+		# Can only contract one war at a time
+		custom_tooltip = {
+			text = contract_assistance_war_already_contracted_tt
+			scope:recipient = {
+				NOT = { has_variable = owed_contract_assistance_war }
+			}
+		}
+	}
+
+	can_be_picked = {
+		# Recipient is war leader in chosen war
+		scope:target = {
+			is_war_leader = scope:actor
+			# not already in target war
+			custom_description = {
+				text = join_war_interaction_already_in_target_war
+				NOR = {
+					any_war_attacker = { this = scope:recipient }
+					any_war_defender = { this = scope:recipient }
+				}
+			}
+		}
+		# Liege checks
+		can_join_war_liege_vassal_check_trigger = { WARRIOR = scope:actor JOINER = scope:recipient }
+	}
+
+	on_accept = {
+		# Add Actor to Recipient's war
+		scope:target = {
+			hidden_effect = { set_called_to = scope:recipient }
+			if = {
+				limit = { is_attacker = scope:actor }
+				add_attacker = scope:recipient
+			}
+			else = { add_defender = scope:recipient }
+		}
+		# Actor effects
+		scope:recipient = {
+			save_scope_as = contract_assistance_helper
+			set_variable = {
+				name = owed_contract_assistance_war
+				value = scope:target
+			}
+			set_variable = {
+				name = owed_contract_assistance_contribution
+				value = offer_assistance_interaction_war_contribution_value
+			}
+			set_variable = {
+				name = owed_contract_assistance_gold
+				value = offer_assistance_interaction_gold_value
+			}
+			stress_impact = {
+				craven = medium_stress_impact_gain
+				shy = minor_stress_impact_gain
+			}
+
+
+			# Struggle Catalyst
+			if = {
+				limit = {
+					# Verify if vassal used to be independent
+					any_character_struggle = {
+						involvement = involved
+						activate_struggle_catalyst_secondary_character_involvement_involved_trigger = {
+							CATALYST = catalyst_join_war_as_assisant
+							CHAR = scope:recipient
+						}
+					}
+				}
+				every_character_struggle = {
+					involvement = involved
+					limit = {
+						activate_struggle_catalyst_secondary_character_involvement_involved_trigger = {
+							CATALYST = catalyst_join_war_as_assisant
+							CHAR = scope:recipient
+						}
+					}
+					activate_struggle_catalyst = {
+						catalyst = catalyst_join_war_as_assisant
+						character = scope:recipient
+					}
+				}
+			}
+		}
+		# Recipient effects
+		scope:actor = {
+			stress_impact = {
+				greedy = medium_stress_impact_gain
+				arrogant = medium_stress_impact_gain
+			}
+			custom_tooltip = request_contract_assistance_interaction_condition_tt
+			show_as_tooltip = {
+				pay_short_term_gold = {
+					target = scope:recipient
+					gold = offer_assistance_interaction_gold_value 
+				}
+			}
+		}
+	}
+
+	on_decline = {
+		# Refusal notification
+		scope:actor = { trigger_event = char_interaction.0236 }
+	}
+
+	ai_accept = {
+		base = 0 # Reluctant to spend money without good reason
+
+		# Recipient has low cash
+		modifier = {
+			add = {
+				value = 25
+				if = {
+					limit = {
+						gold < 0
+					}
+					add = {
+						value = 25
+						multiply = debt_level
+					}
+				}
+				if = { # Very generous or vengeful characters *will* make poor decisions
+					limit = {
+						OR = {
+							ai_greed <= -50
+							ai_vengefulness >= 50
+						}
+					}
+					multiply = 0.5
+				}
+			}
+			desc = AI_VALUE_MODIFIER_GREED
+		}
+		# Recipient has a lot of cash
+		modifier = {
+			add = {
+				value = -25
+				if = {
+					limit = {
+						gold >= {
+							value = offer_assistance_interaction_gold_value
+							multiply = 2
+						}
+					}
+					add = -50
+				}
+				if = {
+					limit = {
+						gold >= {
+							value = offer_assistance_interaction_gold_value
+							multiply = 3
+						}
+					}
+					add = -50
+				}
+			}
+			gold >= offer_assistance_interaction_gold_value
+			desc = OA_AI_EXTRA_GOLD_REASON
+		}
+		# Recipient is not interested in help for certain wars
+		modifier = {
+			add = -500
+			exists = scope:target
+			scope:target = {
+				OR = {
+					using_cb = peasant_war
+					using_cb = fp2_border_raid
+				}
+			}
+			desc = OA_AI_UNINTERESTED_WAR_REASON
+		}
+		modifier = {
+			add = {
+				value = scope:actor.martial
+				multiply = 2
+			}
+			scope:actor = { martial >= 12 }
+			desc = OA_AI_MARTIAL_REASON
+		}
+		modifier = {
+			add = -50
+			scope:recipient = { has_character_flag = fp2_contract_assistance_failure }
+			desc = OA_AI_FAILURE_REASON
+		}
+		# Opinion Factor
+		opinion_modifier = {
+			who = scope:recipient
+			opinion_target = scope:actor
+			multiplier = 0.25
+			desc = AI_OPINION_REASON
+		}
+
+		modifier = {
+			add = {
+				value = ai_greed
+				multiply = 0.2
+			}
+			ai_greed <= 0.5
+			desc = AI_VALUE_MODIFIER_GREED
+		}
+
+		modifier = {
+			add = {
+				value = ai_boldness
+				multiply = 0.2
+			}
+			NOT = { ai_boldness = 0 }
+			desc = AI_VALUE_MODIFIER_BOLDNESS
+		}
+
+		# Allegiances
+		fp2_contracting_ally_modifier = {
+			WARMONGER = scope:actor
+			WARJOINER = scope:recipient
+		}
+	}
+
+	ai_potential = {
+		# the AI cannot use it for now so let's block it
+		is_imprisoned = no
+		is_at_war = no
+		gold >= ai_war_chest_desired_gold_value
+	}
+	ai_target_quick_trigger = { adult = yes }
+	ai_targets = {
+		ai_recipients = neighboring_rulers
+	}
+
+	ai_set_target = {
+		scope:actor = {
+			ordered_character_war = { #We offer our services for the war where the character is losing the most
+				limit = {
+					is_war_leader = prev
+					NOR = {
+						any_war_attacker = { this = scope:recipient }
+						any_war_defender = { this = scope:recipient }
+					}
+					save_temporary_scope_as = target
+					can_join_war_liege_vassal_check_trigger = { WARRIOR = scope:actor JOINER = scope:recipient }
+				}
+				order_by = {
+					value = 0
+					add = {
+						if = {
+							limit = { any_war_attacker = { this = scope:actor } }
+							subtract = attacker_war_score
+						}
+						else = {
+							subtract = defender_war_score
+						}
+					}
+				}
+				save_scope_as = target
+			}
+		}
+	}
+
+	ai_targets = {
+		ai_recipients = peer_vassals
+	}
+	ai_frequency = 36
+
+	ai_will_do = {
+		base = 0
+
+		modifier = { # AI is losing the war
+			trigger_if = {
+				limit = { exists = scope:target }
+				scope:target = {
+					trigger_if = {
+						limit = {
+							scope:actor = { is_attacker_in_war = prev }
+						}
+						defender_war_score >= offer_assistance_interaction_already_losing_value
+					}
+					trigger_else = { attacker_war_score >= offer_assistance_interaction_already_losing_value }
+				}
+			}
+			add = 15
+		}
+
+		modifier = { # Increase chance for asking family
+			scope:recipient = {
+				OR = {
+					dynasty = scope:actor.dynasty
+					is_consort_of = scope:actor
+				}
+			}
+			factor = 2
+		}
+
+		modifier = { # Decrease chance if army is small
+			trigger_if = {
+				limit = { exists = scope:target }
+				scope:target = {
+					trigger_if = {
+						limit = {
+							scope:recipient = { is_attacker_in_war = prev }
+						}
+						scope:actor.max_military_strength < war_defender_total_strength_divided_value
+					}
+					trigger_else = { scope:actor.max_military_strength < war_attacker_total_strength_divided_value }
+				}
+			}
+			add = -50
+		}
+
+		modifier = { # Increase chance for rivalry
+			trigger_if = {
+				limit = { exists = scope:target }
+				scope:target = {
+					any_war_participant = {
+						is_leader_in_war = scope:target
+						NOT = { this = scope:actor }
+						has_relation_rival = scope:recipient
+					}
+				}
+			}
+			add = 25
+		}
+
+		modifier = { # AI is extremely rich
+			short_term_gold >= ai_war_chest_desired_gold_value
+			add = 50
+		}
+	}
+}
+
+request_cede_territory_interaction = {
+	category = interaction_category_diplomacy
+	interface_priority = 15
+	common_interaction = yes
+	# interface = transfer_vassal
+	# special_interaction = grant_titles_interaction
+	popup_on_receive = yes
+	pause_on_receive = yes
+
+	
+	ai_maybe = yes
+	desc = request_cede_territory_interaction_desc
+	icon = debug_take_title
+
+	target_type = title
+	target_filter = recipient_domain_titles
+
+	greeting = positive
+	notification_text = request_cede_territory_interaction_notification
+	
+	prompt = OFFER_HOSTAGE_SELECT_HOSTAGE_TO_TRANSFER
+
+	is_shown = {
+		# 要求する側
+		scope:actor = {
+			is_at_war = no
+			has_title = title:d_apulia
+		}
+		# 要求される側
+		scope:recipient = {
+			# 土地を持っていること
+			is_landed = yes
+		}
+		NOT = { scope:recipient = scope:actor }
+	}
+
+	is_valid = {
+		scope:actor = {
+			has_strong_usable_hook = scope:recipient
+		}
+	}
+
+	# 伯爵領のみ
+	can_be_picked_title = {
+		scope:target = {
+			is_contested = no
+			custom_description = {
+				text = "character_interactions_not_rel_head_title"
+				is_head_of_faith = no
+			}
+			tier = tier_county
+		}
+	}
+
+	#Use hook
+	send_option = {
+		is_valid = {
+			scope:actor = {
+				has_strong_usable_hook = scope:recipient
+			}
+		}
+		flag = hook
+		localization = SCHEME_HOOK
+		starts_enabled = { always = yes }
+		can_be_changed = { always = no }
+	}
+	send_options_exclusive = no
+	on_accept = {
+		# use strong hook
+		if = {
+			limit = { always = scope:hook }
+			scope:actor = {
+				remove_hook = {
+					target = scope:recipient
+				}
+			}
+		}
+		# target == selected title by actor
+		create_title_and_vassal_change = {
+			type = returned
+			save_scope_as = change
+			add_claim_on_loss = yes
+		}
+		scope:target = {
+			change_title_holder = {
+				holder = scope:actor
+				change = scope:change
+			}
+		}
+		resolve_title_and_vassal_change = scope:change
+	}
+	on_decline = {
+
+	}
+}
