@@ -1,6 +1,6 @@
 ﻿l_english:
   request_cede_territory_interaction: "Request Cede Territory"
   request_cede_territory_interaction_desc: "Request Cede Territory DESC"
-  request_cede_territory_interaction_notification: "Request Cede Territory NOTICE"
+  request_cede_territory_interaction_notification: "Would like you to fulfill your obligations in the form of ceding territory."
   request_cede_territory_interaction_prompt: "hello"
   qe_request_contract_assistance_interaction: "Request Contract Assistance"

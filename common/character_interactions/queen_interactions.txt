@@ -454,6 +454,7 @@ request_cede_territory_interaction = {
 	
 	prompt = OFFER_HOSTAGE_SELECT_HOSTAGE_TO_TRANSFER
 
+	# 表示条件
 	is_shown = {
 		# 要求する側
 		scope:actor = {
@@ -468,9 +469,18 @@ request_cede_territory_interaction = {
 		NOT = { scope:recipient = scope:actor }
 	}
 
+	# 使用条件
 	is_valid = {
+		# 強力なフックを持っていること
 		scope:actor = {
 			has_strong_usable_hook = scope:recipient
+		}
+		# お互いに戦争状態でないこと
+		scope:actor = {
+			is_at_war = no
+		}
+		scope:recipient = {
+			is_at_war = no
 		}
 	}
 
@@ -498,7 +508,28 @@ request_cede_territory_interaction = {
 		starts_enabled = { always = yes }
 		can_be_changed = { always = no }
 	}
+	# 選択肢　排他的
 	send_options_exclusive = no
+
+	ai_targets = {
+		ai_recipients = hooked_characters
+		max = 1
+		chance = 1
+	}
+	ai_frequency = 1
+	ai_will_do = 100
+	# ai_set_target = {
+	# 	scope:
+	# }
+	# is_coastal_county
+	# is_coastal
+
+	ai_accept = {
+		base = 100
+	}
+	
+
+	# 承諾した場合
 	on_accept = {
 		# use strong hook
 		if = {
@@ -523,7 +554,12 @@ request_cede_territory_interaction = {
 		}
 		resolve_title_and_vassal_change = scope:change
 	}
-	on_decline = {
 
+	# 断られた場合
+	on_decline = {
+		# scope:unpressed = { add_unpressed_claim = scope:target }
+		scope:actor = {
+			add_unpressed_claim = scope:target
+		}
 	}
 }
